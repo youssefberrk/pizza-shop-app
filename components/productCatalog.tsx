@@ -29,26 +29,24 @@ const ProductCatalog = ({
 							},
 							price: product.price,
 							attributeValues: {
-								p_description: (() => {
-									const desc = product.attributeValues?.p_description;
+								description: (() => {
+									const desc = product.attributeValues?.description;
 									if (!desc) return { value: [] };
 									return desc;
 								})(),
-								p_price: (() => {
-									const price = product.attributeValues?.p_price;
+								price: (() => {
+									const price = product.attributeValues?.price;
+									console.log(price);
 									if (!price) return { value: 0 };
-									// Handle OneEntry structure
-									if (typeof price === "object" && "value" in price) {
-										return {
-											value: typeof price.value === "number" ? price.value : 0,
-										};
-									}
-									return { value: 0 };
+									const val = Array.isArray(price.value)
+										? price.value[0]
+										: price.value;
+									return { value: typeof val === "number" ? val : 0 };
 								})(),
+
 								pic: (() => {
-									const image = product.attributeValues?.p_image;
+									const image = product.attributeValues?.pic; // ✅ correct key
 									if (!image) return { value: { downloadLink: "" } };
-									// Handle OneEntry structure
 									if (typeof image === "object" && "value" in image) {
 										return {
 											value: { downloadLink: image.value?.downloadLink || "" },
