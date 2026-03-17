@@ -15,6 +15,7 @@ import { useRouter } from "next/navigation";
 import useCartStore from "@/stores/cartStore";
 import getUserSession from "@/actions/auth/getUserSession";
 import { IUserEntity } from "oneentry/dist/users/usersInterfaces";
+import createOrder from "@/actions/orders/create-order";
 import { IOrderData } from "oneentry/dist/orders/ordersInterfaces";
 
 export default function CartPage() {
@@ -54,6 +55,66 @@ export default function CartPage() {
 	);
 	const tax = subtotal * 0.1; // Assuming 10% tax
 	const total = subtotal + tax;
+
+	const createOrderAndCheckout = async () => {
+		try {
+			// Get user's name from user session formData
+			let userName = "Customer";
+
+			if (user?.formData) {
+				// Look for name fields in user's formData
+				const nameField = user.formData.find(
+					(field) =>
+						field.marker === "name" ||
+						field.marker === "first_name" ||
+						field.marker === "full_name",
+				);
+
+				const firstNameField = user.formData.find(
+					(field) => field.marker === "first_name",
+				);
+				const lastNameField = user.formData.find(
+					(field) => field.marker === "last_name",
+				);
+
+				if (nameField?.value) {
+					userName = nameField.value;
+				} else if (firstNameField?.value || lastNameField?.value) {
+					userName = `${firstNameField?.value || ""} ${
+						lastNameField?.value || ""
+					}`.trim();
+				}
+			}
+
+			const data = {
+				formIdentifier: "order_form",
+				paymentAccountIdentifier: "stripe_payment",
+				formData: [
+					{
+						marker: "name",
+						value: userName,
+						type: "string",
+					},
+				],
+				products: cartItems.map((item) => ({
+					productId: item.id,
+					quantity: item.quantity,
+				})),
+			} as IOrderData;
+
+			console.log("Sending order data:", data);
+			console.log("User name being sent:", userName);
+			console.log("User formData:", user?.formData);
+
+			const url = await createOrder(data);
+			clearCart();
+			router.push(url);
+		} catch (error) {
+			console.error("Checkout error:", error);
+			// You might want to show a toast notification here
+			alert("Failed to process order. Please try again.");
+		}
+	};
 
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-red-50/30 via-orange-50/20 to-yellow-50/30 dark:from-red-950/10 dark:via-orange-950/10 dark:to-yellow-950/10">
@@ -255,7 +316,8 @@ export default function CartPage() {
 							{user ? (
 								<Button
 									className="w-full h-12 sm:h-14 bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 hover:from-red-600 hover:via-orange-600 hover:to-yellow-600 text-white font-bold text-base sm:text-lg rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-[1.02] cursor-pointer"
-									disabled={!cartItems.length}>
+									disabled={!cartItems.length}
+									onClick={createOrderAndCheckout}>
 									<CreditCard className="mr-2 sm:mr-3 h-5 w-5 sm:h-6 sm:w-6" />
 									<span className="hidden xs:inline">Proceed to </span>Checkout
 									🍕
